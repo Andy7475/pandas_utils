@@ -1,8 +1,9 @@
 import pytest
 import pandas as pd
 import numpy as np
+from sympy import maximum
 
-from utils import get_relation
+from utils import get_relation, maximum_unique_mapping, maximum_unique_mappings
 
 @pytest.fixture
 def test_data():
@@ -59,3 +60,36 @@ def test_one_to_one_with_na(test_data):
     relationship_reversed = get_relation(test_data, col2, col1, ignore_na=False)
     assert relationship == "one-to-many"
     assert relationship_reversed == "many-to-one"
+
+def test_single_unique_mapping(test_data):
+    col1 = "121_col1"
+    col2 = "121_col2"
+    max_value = maximum_unique_mapping(test_data, col1, col2)
+    max_value_reversed = maximum_unique_mapping(test_data, col1, col2)
+    assert max_value == 1
+    assert max_value_reversed == 1
+    
+def test_single_unique_mapping_with_na_replace(test_data):
+    col1 = "121_col1"
+    col2 = "121_col2"
+    test_data = test_data.fillna("-1") #only col2 has an NaN value, so should only impact max_value variable
+    max_value = maximum_unique_mapping(test_data, col1, col2)
+    max_value_reversed = maximum_unique_mapping(test_data, col2, col1)
+    assert max_value == 2
+    assert max_value_reversed == 1
+    
+def test_number_unique_mappings(test_data):
+    returned_df = maximum_unique_mappings(test_data)
+
+    val1 = returned_df.loc["12m_col1", "12m_col2"]
+    assert val1 == 3
+
+    val2 = returned_df.loc["12m_col2", "12m_col1"] 
+    assert val2 == 1
+
+def test_ignore_cols_reduces_df_size(test_data):
+
+    #pick 1 column
+    col = test_data.columns[0]
+    returned_df = maximum_unique_mappings(test_data, ignore_cols=[col])
+    assert test_data.shape[1] == returned_df.shape[1] + 1
